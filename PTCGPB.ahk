@@ -80,7 +80,7 @@ IniRead, Pikachu, Settings.ini, UserSettings, Pikachu, 0
 IniRead, Charizard, Settings.ini, UserSettings, Charizard, 0
 IniRead, Mewtwo, Settings.ini, UserSettings, Mewtwo, 0
 IniRead, slowMotion, Settings.ini, UserSettings, slowMotion, 0
-IniRead, ocrLanguage, Settings.ini, UserSettings, ocrLanguage, en
+IniRead, ocrLanguage, Settings.ini, UserSettings, ocrLanguage, FirstFromAvailableLanguages
 IniRead, autoLaunchMonitor, Settings.ini, UserSettings, autoLaunchMonitor, 1
 IniRead, mainIdsURL, Settings.ini, UserSettings, mainIdsURL, ""
 IniRead, vipIdsURL, Settings.ini, UserSettings, vipIdsURL, ""
@@ -144,7 +144,7 @@ Gui, Add, Edit, vfolderPath w200 x20 y365 h20 -E0x200 Background2A2A2A cWhite, %
 Gui, Add, Text, x20 y395 c4169E1, Language Pack:
 
 ; ========== Language Pack list ==========
-languageList := "en|zh|es|de|fr|ja|ru|pt|ko|it|tr|pl|nl|sv|ar|uk|id|vi|th|he|cs|no|da|fi|hu|el|zh-TW"
+languageList := "FirstFromAvailableLanguages|en|zh|es|de|fr|ja|ru|pt|ko|it|tr|pl|nl|sv|ar|uk|id|vi|th|he|cs|no|da|fi|hu|el|zh-TW"
 
 if (ocrLanguage != "")
 {
