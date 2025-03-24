@@ -1530,6 +1530,8 @@ deleteAccountSql(filename := "", type := "1") {
 
 loadAccountSql() {
 	global adbShell, adbPath, adbPort, loadDir
+	
+	adbShell.StdIn.WriteLine("am force-stop jp.pokemon.pokemontcgp")
 
 	query := "SELECT account_id, filename, accountBody FROM InjectAccounts WHERE last_used < (unixepoch() - (24*60*60)) AND deletedAccount = 0 ORDER BY RANDOM() LIMIT 1;"
 
@@ -1546,11 +1548,12 @@ loadAccountSql() {
 		}
 		account_id := Row[1]
 		loadDir := Row[2]
+		loadPath := A_ScriptDir . "\" . loadDir
 
 		Size := Row[3].Size
 		Addr := Row[3].GetAddress("Blob")
 		If (Addr) && (Size) {
-			HFILE := FileOpen(loadDir, "w")
+			HFILE := FileOpen(loadPath, "w")
 			VarSetCapacity(MyBLOBVar, Size) ; added
 			DllCall("Kernel32.dll\RtlMoveMemory", "Ptr", &MyBLOBVar, "Ptr", Addr, "Ptr", Size) ; added
 			HFILE.RawWrite(&MyBLOBVar, Size) ; changed
@@ -1583,9 +1586,7 @@ loadAccountSql() {
 	}
 
 	; Inject the account
-	adbShell.StdIn.WriteLine("am force-stop jp.pokemon.pokemontcgp")
-
-	RunWait, % adbPath . " -s 127.0.0.1:" . adbPort . " push " . loadDir . " /sdcard/deviceAccount.xml",, Hide
+	RunWait, % adbPath . " -s 127.0.0.1:" . adbPort . " push " . loadPath . " /sdcard/deviceAccount.xml",, Hide
 
 	Sleep, 500
 
@@ -1597,9 +1598,9 @@ loadAccountSql() {
 	waitadb()
 	Sleep, 1000
 
-	if(FileExist(loadDir))
+	if(FileExist(loadPath))
 	{
-		FileDelete, %loadDir%
+		FileDelete, %loadPath%
 	}
 
 	return loadDir
