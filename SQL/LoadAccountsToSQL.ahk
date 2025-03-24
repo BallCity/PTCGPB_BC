@@ -21,29 +21,6 @@ if (FileExist(sql_dllPath)) {
 	 }
 }
 
-query := "SELECT account_id, accountBody FROM InjectAccounts WHERE last_used < (unixepoch() - (24*60*60)) AND deletedAccount = 0 ORDER BY RANDOM() LIMIT 1;"
-;;HFILE := FileOpen("Blob.gif", "w")
-If !sql_DB.Query(query, RecordSet)
-   MsgBox, 16, SQLite Error: Query, % "Msg:`t" . RecordSet.ErrorMsg . "`nCode:`t" . RecordSet.ErrorCode
-If (RecordSet.HasRows) {
-   If (RecordSet.Next(Row) < 1) {
-      MsgBox, 16, %A_ThisFunc%, % "Msg:`t" . RecordSet.ErrorMsg . "`nCode:`t" . RecordSet.ErrorCode
-      return
-   }
-   account_id := Row[1]
-   Size := Row[2].Size
-   Addr := Row[2].GetAddress("Blob")
-   If (Addr) && (Size) {
-    VarSetCapacity(MyBLOBVar, Size) ; added
-    DllCall("Kernel32.dll\RtlMoveMemory", "Ptr", &MyBLOBVar, "Ptr", Addr, "Ptr", Size) ; added
-    ;;;;HFILE.RawWrite(&MyBLOBVar, Size) ; changed
-    }
-}
-RecordSet.Free()
-;;;;HFILE.Close()
-
-ExitApp
-
 saveDir := A_ScriptDir "\..\Accounts\Saved"
 
 Loop Files, %saveDir%\*.xml, R

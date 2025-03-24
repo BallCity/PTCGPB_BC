@@ -320,7 +320,7 @@ if (FileExist(sql_dllPath)) {
 
 	 ; Create our Base Tables if the file doesn't exist
 	if(!sql_existingDB) {
-		SQL := "CREATE TABLE InjectAccounts (account_id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, created TEXT, last_used TEXT, deletedAccount INTEGER DEFAULT 0, accountBody TEXT);"
+		SQL := "CREATE TABLE InjectAccounts (account_id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, created TEXT, last_used TEXT, deletedAccount INTEGER DEFAULT 0, accountBody BLOB);"
 		If !sql_DB.Exec(SQL) {
 			MsgBox, 16, SQLite Error, % "Msg:`t" . sql_DB.ErrorMsg . "`nCode:`t" . sql_DB.ErrorCode
 			ExitApp
