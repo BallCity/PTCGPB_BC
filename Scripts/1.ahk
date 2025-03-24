@@ -1579,7 +1579,8 @@ loadAccountSql() {
 		sql_DB.Exec("COMMIT TRANSACTION;")
 
 		if(success) {
-			return changes
+			; return changes
+			break
 		} else {
 			Sleep, 500
 		}
