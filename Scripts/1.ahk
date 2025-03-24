@@ -4,6 +4,30 @@
 ; BallCity - 2025.20.25 - Add OCR library for Username if Inject is on
 #Include *i %A_ScriptDir%\Include\OCR.ahk
 
+; OPTIONAL - for the SQLite Use Case
+#Include *i %A_ScriptDir%\..\SQL\Class_SQLiteDB.ahk
+
+; ========== Prepare SQLite DB ==========
+; INTEGER, TEXT, BLOB, REAL, NUMERIC
+global sql_DB
+sql_dllPath := A_ScriptDir . "\..\SQL\sqlite3.dll"
+sql_DBPath := A_ScriptDir . "\..\SQL\poke.db"
+sql_DB := false
+
+if (FileExist(sql_dllPath)) {
+	; Initiate the DB
+	sql_DB := new SQLiteDB2(sql_dllPath)
+	
+	; Open our DB
+	sql_existingDB := FileExist(sql_DBPath)
+	if !sql_DB.OpenDB(sql_DBPath) {
+		sql_DB := false
+	} else
+	{
+		sql_DB.Exec("PRAGMA journal_mode=WAL;")
+	}
+}
+
 #SingleInstance on
 SetMouseDelay, -1
 SetDefaultMouseSpeed, 0
@@ -732,6 +756,9 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
 			if(loadedAccount) {
 				FileDelete, %loadedAccount%
 				IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
+
+				if(sql_DB != false)
+					deleteAccountSql(loadedAccount)
 			}
 			LogToFile("Restarted game for instance " scriptName " Reason: No save data found", "Restart.txt")
 			Reload
@@ -877,6 +904,9 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
 				if(loadedAccount) {
 					FileDelete, %loadedAccount%
 					IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
+
+					if(sql_DB != false)
+						deleteAccountSql(loadedAccount)
 				}
 				LogToFile("Restarted game for instance " scriptName " Reason: No save data found", "Restart.txt")
 				Reload
@@ -1144,6 +1174,9 @@ menuDeleteStart() {
 	}
 	if(loadedAccount) {
 		FileDelete, %loadedAccount%
+
+		if(sql_DB != false)
+			deleteAccountSql(loadedAccount)
 	}
 }
 
@@ -1264,6 +1297,9 @@ CheckPack() {
 		if(loadedAccount) {
 			FileDelete, %loadedAccount% ;delete xml file from folder if using inject method
 			IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
+
+			if(sql_DB != false)
+				deleteAccountSql(loadedAccount, "2")
 		}
 		if(foundGP)
 			restartGameInstance("God Pack found. Continuing...", "GodPack") ; restarts to backup and delete xml file with account info.
@@ -1471,9 +1507,111 @@ GodPackFound(validity) {
 	}
 }
 
-loadAccount() {
+deleteAccountSql(filename := "", type := "1") {
+	if(filename == "")
+		return false
+
+	loop 5 {
+		sql_DB.Exec("BEGIN TRANSACTION;")
+		SQL := "UPDATE InjectAccounts SET deletedAccount = '" . type . "' WHERE filename = '" . filename . "';"
+		success := sql_DB.Exec(SQL)
+		changes := sql_DB.Changes
+		sql_DB.Exec("COMMIT TRANSACTION;")
+
+		if(success) {
+			return changes
+		} else {
+			Sleep, 500
+		}
+	}
+
+	return false
+}
+
+loadAccountSql() {
 	global adbShell, adbPath, adbPort, loadDir
+
+	query := "SELECT account_id, filename, accountBody FROM InjectAccounts WHERE last_used < (unixepoch() - (24*60*60)) AND deletedAccount = 0 ORDER BY RANDOM() LIMIT 1;"
+
+	If !sql_DB.Query(query, RecordSet)
+	{
+		;MsgBox, 16, SQLite Error: Query, % "Msg:`t" . RecordSet.ErrorMsg . "`nCode:`t" . RecordSet.ErrorCode
+		return false
+	}
+	If (RecordSet.HasRows) {
+		If (RecordSet.Next(Row) < 1) {
+			;MsgBox, 16, %A_ThisFunc%, % "Msg:`t" . RecordSet.ErrorMsg . "`nCode:`t" . RecordSet.ErrorCode
+			RecordSet.Free()
+			return false
+		}
+		account_id := Row[1]
+		loadDir := Row[2]
+
+		Size := Row[3].Size
+		Addr := Row[3].GetAddress("Blob")
+		If (Addr) && (Size) {
+			HFILE := FileOpen(loadDir, "w")
+			VarSetCapacity(MyBLOBVar, Size) ; added
+			DllCall("Kernel32.dll\RtlMoveMemory", "Ptr", &MyBLOBVar, "Ptr", Addr, "Ptr", Size) ; added
+			HFILE.RawWrite(&MyBLOBVar, Size) ; changed
+			HFILE.Close()
+		} Else
+		{
+			RecordSet.Free()
+			return false
+		}
+	}
+	RecordSet.Free()
+
+	if(account_id < 1) {
+		return false
+	}
+
+
+	loop 5 {
+		sql_DB.Exec("BEGIN TRANSACTION;")
+		SQL := "UPDATE InjectAccounts SET last_used = unixepoch() WHERE account_id = '" . account_id . "';"
+		success := sql_DB.Exec(SQL)
+		changes := sql_DB.Changes
+		sql_DB.Exec("COMMIT TRANSACTION;")
+
+		if(success) {
+			return changes
+		} else {
+			Sleep, 500
+		}
+	}
+
+	; Inject the account
+	adbShell.StdIn.WriteLine("am force-stop jp.pokemon.pokemontcgp")
+
+	RunWait, % adbPath . " -s 127.0.0.1:" . adbPort . " push " . loadDir . " /sdcard/deviceAccount.xml",, Hide
+
+	Sleep, 500
+
+	adbShell.StdIn.WriteLine("cp /sdcard/deviceAccount.xml /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml")
+	waitadb()
+	adbShell.StdIn.WriteLine("rm /sdcard/deviceAccount.xml")
+	waitadb()
+	adbShell.StdIn.WriteLine("am start -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity")
+	waitadb()
+	Sleep, 1000
+
+	if(FileExist(loadDir))
+	{
+		FileDelete, %loadDir%
+	}
+
+	return loadDir
+}
+
+loadAccount() {
+	global adbShell, adbPath, adbPort, loadDir, sql_DB
 	CreateStatusMessage("Loading account...")
+
+	if(sql_DB != false)
+		return loadAccountSql()
+
 	currentDate := A_Now
 	year := SubStr(currentDate, 1, 4)
 	month := SubStr(currentDate, 5, 2)
@@ -1539,6 +1677,11 @@ loadAccount() {
 	FileSetTime,, %loadDir%
 
 	return loadDir
+}
+
+saveAccountSql(filename := "") {
+	global adbShell, adbPath, adbPort
+
 }
 
 saveAccount(file := "Valid") {

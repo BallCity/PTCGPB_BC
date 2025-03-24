@@ -3,6 +3,8 @@ version = Arturos PTCGP Bot
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 
+#include *i %A_ScriptDir%\SQL\Class_SQLiteDB.ahk
+
 githubUser := "Arturo-1212"
 repoName := "PTCGPB"
 localVersion := "v6.3.21"
@@ -298,6 +300,38 @@ if (defaultLanguage = "Scale125") {
 } else if (defaultLanguage = "Scale100") {
 	defaultLang := 2
 	scaleParam := 287
+}
+
+; ========== Prepare SQLite DB ==========
+; INTEGER, TEXT, BLOB, REAL, NUMERIC
+sql_dllPath := A_ScriptDir . "\SQL\sqlite3.dll"
+sql_DBPath := A_ScriptDir . "\SQL\poke.db"
+
+if (FileExist(sql_dllPath)) {
+	; Initiate the DB
+	sql_DB := new SQLiteDB2(sql_dllPath)
+	
+	; Open our DB
+	sql_existingDB := FileExist(sql_DBPath)
+	If !sql_DB.OpenDB(sql_DBPath) {
+		MsgBox, 16, SQLite Error, % "Msg:`t" . sql_DB.ErrorMsg . "`nCode:`t" . sql_DB.ErrorCode
+		ExitApp
+	 }
+
+	 ; Create our Base Tables if the file doesn't exist
+	if(!sql_existingDB) {
+		SQL := "CREATE TABLE InjectAccounts (account_id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, created TEXT, last_used TEXT, deletedAccount INTEGER DEFAULT 0, accountBody TEXT);"
+		If !sql_DB.Exec(SQL) {
+			MsgBox, 16, SQLite Error, % "Msg:`t" . sql_DB.ErrorMsg . "`nCode:`t" . sql_DB.ErrorCode
+			ExitApp
+		}
+
+		SQL := "CREATE TABLE Packs (id INTEGER PRIMARY KEY AUTOINCREMENT, instance INTEGER, time_pulled TEXT);"
+		If !sql_DB.Exec(SQL) {
+			MsgBox, 16, SQLite Error, % "Msg:`t" . sql_DB.ErrorMsg . "`nCode:`t" . sql_DB.ErrorCode
+			ExitApp
+		}
+	}
 }
 
 ;Gui, Add, Text, x270 y400 cWhite, Scale:
