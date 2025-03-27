@@ -1699,10 +1699,10 @@ adbInputEvent(event) {
 	adbShell.StdIn.WriteLine("input keyevent " . event)
 }
 
-adbSwipeUp() {
+adbSwipeUp(speed) {
 	global adbShell, adbPath, adbPort
 	;initializeAdbShell()
-	adbShell.StdIn.WriteLine("input swipe 309 816 309 355 60")
+	adbShell.StdIn.WriteLine("input swipe 266 770 266 355 " . speed)
 	waitadb()
 }
 
@@ -2456,7 +2456,7 @@ DoTutorial() {
 	failSafe := A_TickCount
 	failSafeTime := 0
 	Loop {
-		adbSwipeUp()
+		adbSwipeUp(60)
 		Sleep, 10
 		if (FindOrLoseImage(120, 70, 150, 95, , "SwipeUp", 0, failSafeTime)){
 			if(setSpeed > 1) {
@@ -2644,7 +2644,9 @@ SelectPack(HG := false) {
 		FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 245, 475)
 		packy := 442
 		if(openPack = "Pikachu" || openPack = "Mewtwo" || openPack = "Charizard"){
-			; adbSwipeUp() ; TODO uncomment 
+			;Sleep, 500 ; TODO uncomment 
+			;adbSwipeUp(160) ; TODO uncomment 
+			;Sleep, 500 ; TODO uncomment 
 			;TODO find new y. maybe not even needed
 		}
 		if(openPack = "Pikachu"){
