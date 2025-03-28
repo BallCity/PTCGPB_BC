@@ -1319,6 +1319,9 @@ CheckPack() {
 			if(loadedAccount) {
 				FileDelete, %loadedAccount% ;delete xml file from folder if using inject method
 				IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
+
+				if(sql_DB != false)
+					deleteAccountSql(loadedAccount, "2")
 			}
 			if(foundGP)
 				restartGameInstance("God Pack found. Continuing...", "GodPack") ; restarts to backup and delete xml file with account info.
